@@ -1,0 +1,86 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, codex/android-apk]
+    paths:
+      - '.github/workflows/android-apk.yml'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'src/**'
+      - 'public/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build web application
+        run: pnpm build
+
+      - name: Generate Android project
+        run: |
+          pnpm exec cap add android
+          pnpm exec cap sync android
+          sed -i 's/versionCode 1/versionCode 60000/' android/app/build.gradle
+          sed -i 's/versionName "1.0"/versionName "6.0.0"/' android/app/build.gradle
+
+      - name: Build installable APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Electric-Crew-6.0.0.apk
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Electric-Crew-6.0.0-APK
+          path: Electric-Crew-6.0.0.apk
+          if-no-files-found: error
+
+      - name: Publish APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view android-v6.0.0 >/dev/null 2>&1; then
+            gh release upload android-v6.0.0 Electric-Crew-6.0.0.apk --clobber
+          else
+            gh release create android-v6.0.0 Electric-Crew-6.0.0.apk \
+              --title "Electric Crew 6.0 Android" \
+              --notes "Telepíthető Android APK az Electric Crew 6.0 kiadásához."
+          fi

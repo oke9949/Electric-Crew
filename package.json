@@ -1,7 +1,7 @@
 {
   "name": "electric-crew-app",
   "private": true,
-  "version": "10.0.0",
+  "version": "10.0.1",
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {

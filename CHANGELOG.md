@@ -1,5 +1,14 @@
 # Változásnapló
 
+## 10.0.1 – Document Intelligence Stabilized (2026-08-20)
+
+### Javítva és ellenőrizve
+
+- Stabilizált production webes és Android-kiadás a 10.0 dokumentum-intelligencia funkcióihoz.
+- Mobil- és asztali bejelentkezési felület, jelszó-visszaállítás és AI API-hozzáférés ellenőrizve.
+- Dokumentum-anyaglista, AI pénzügyi összesítő és helyben csomagolt térképmodul production ellenőrzése.
+- GitHub Actions minőségellenőrzés és verziózott APK-kiadás egységesítve.
+
 ## 10.0.0 – Document Intelligence (2026-08-20)
 
 ### Új

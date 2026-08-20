@@ -73,7 +73,7 @@ A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a pro
 
 ## Kiadás
 
-Aktuális verzió: **10.0.0 – Document Intelligence**
+Aktuális verzió: **10.0.1 – Document Intelligence Stabilized**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).
 

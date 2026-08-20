@@ -44,14 +44,18 @@ select count(*) from public.notifications
 where user_id=(select auth.uid()) and read_at is null;
 $$;
 create or replace function public.mark_notification_read(notification_id uuid)
-returns void
+returns boolean
 language sql
 security invoker
 set search_path = ''
-as $$
+as $
+with updated as (
 update public.notifications set read_at=coalesce(read_at,now())
-where id=notification_id and user_id=(select auth.uid());
-$$;
+where id=notification_id and user_id=(select auth.uid())
+returning 1
+)
+select exists(select 1 from updated);
+$;
 create or replace function public.get_company_dashboard(target_company_id uuid)
 returns jsonb
 language sql

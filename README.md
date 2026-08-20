@@ -18,6 +18,7 @@ Mobilközpontú, többcéges belső vállalatirányítási rendszer React, TypeS
 - AI dokumentumfeldolgozás, tételes anyaglista és pénzügyi összesítő
 - DWG rajz-metaadatok és gépészeti berendezésjelölések feldolgozása
 - Valós idejű chatszobák, vállalati AI-asszisztens és térkép
+- Android alkalmazáson belüli verzióellenőrzés és APK-frissítési értesítés
 
 ## Követelmények
 
@@ -73,7 +74,6 @@ A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a pro
 
 ## Kiadás
 
-Aktuális verzió: **10.0.1 – Document Intelligence Stabilized**
+Aktuális verzió: **10.0.2 – Android In-App Updates**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).
-

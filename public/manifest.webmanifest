@@ -1,0 +1,10 @@
+{
+  "name": "Electric Crew",
+  "short_name": "E. C.",
+  "description": "Electric Crew belső vállalati alkalmazás",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d12",
+  "theme_color": "#090d12",
+  "lang": "hu"
+}

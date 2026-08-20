@@ -1,5 +1,20 @@
 # Változásnapló
 
+## 6.0.1 – Collaboration & Intelligence (2026-08-20)
+
+### Új
+
+- Valós idejű céges és projekt-chatszobák.
+- Vállalati adatokra épülő Electric Crew AI-asszisztens.
+- Számla-, PDF- és képdokumentumok AI-feldolgozása.
+- Projekt- és önkéntes munkatársi helymegosztásos térkép.
+- Automatikusan verziózott Android APK-fájlnév és GitHub Release.
+
+### Javítva
+
+- Az AI szerverfunkció Vercel-fordítása és jogosultság-ellenőrzése.
+- Az Android verziókód és verziónév most a `package.json` kiadási verziójából készül.
+
 ## 6.0.0 – Enterprise Operations (2026-08-20)
 
 ### Új

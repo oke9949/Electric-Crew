@@ -1,2 +1,2 @@
-export const APP_VERSION = "6.0.0"
-export const RELEASE_NAME = "Enterprise Operations"
+export const APP_VERSION = "6.0.1"
+export const RELEASE_NAME = "Collaboration & Intelligence"

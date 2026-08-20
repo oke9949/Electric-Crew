@@ -70,6 +70,6 @@ A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a pro
 
 ## Kiadás
 
-Aktuális verzió: **6.0.0 – Enterprise Operations**
+Aktuális verzió: **6.0.1 – Collaboration & Intelligence**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).

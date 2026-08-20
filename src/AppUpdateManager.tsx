@@ -14,7 +14,6 @@ type GithubRelease = {
 type UpdateInfo = {
   version: string
   downloadUrl: string
-  releaseUrl: string
 }
 
 const RELEASE_API = 'https://api.github.com/repos/oke9949/Electric-Crew/releases/latest'
@@ -54,16 +53,14 @@ async function fetchAvailableUpdate(): Promise<UpdateInfo | null> {
     const version = normalizeVersion(release.tag_name || release.name || '')
     if (!version || !isNewerVersion(version, APP_VERSION)) return null
 
-    const apk =
-      (release.assets || []).find(asset =>
-        String(asset.name || '').toLowerCase().endsWith('.apk') && String(asset.name || '').includes(version),
-      ) || (release.assets || []).find(asset => String(asset.name || '').toLowerCase().endsWith('.apk'))
-
+    const apk = (release.assets || []).find(asset =>
+      String(asset.name || '').toLowerCase().endsWith('.apk') && String(asset.name || '').includes(version),
+    )
     const releaseUrl = release.html_url || `https://github.com/oke9949/Electric-Crew/releases/tag/android-v${version}`
+
     return {
       version,
       downloadUrl: apk?.browser_download_url || releaseUrl,
-      releaseUrl,
     }
   } finally {
     window.clearTimeout(timeout)
@@ -125,7 +122,7 @@ export default function AppUpdateManager() {
       </div>
       <div className="app-update-actions">
         <a className="btn primary" href={update.downloadUrl} target="_blank" rel="noreferrer">
-          <Download size={17}/> Letöltés és telepítés
+          <Download size={17}/> APK letöltése
         </a>
         <button className="icon-btn" type="button" title="Újraellenőrzés" onClick={() => void check(true)} disabled={checking}>
           <RefreshCw size={17} className={checking ? 'spin' : ''}/>

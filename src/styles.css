@@ -4,7 +4,7 @@
 @media(max-width:430px){.kpi-grid{grid-template-columns:1fr 1fr;gap:8px}.kpi{gap:8px}.kpi span{font-size:9px}.quick-grid{grid-template-columns:1fr}.summary-line{grid-template-columns:1fr 1fr}.topbar strong{font-size:14px}}
 
 /* Electric Crew 6.0 enterprise modules */
-.operation-row { align-items: center; }
+.operation-row { align-items: center; content-visibility: auto; contain-intrinsic-size: 80px; }
 .money { font-weight: 800; color: var(--accent, #5ee6a8); white-space: nowrap; }
 .report-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
 .report-bar { background: var(--surface, #fff); border: 1px solid var(--line, #e6e8ec); border-radius: 18px; padding: 20px; box-shadow: 0 12px 30px rgba(19, 32, 55, .06); }

@@ -194,13 +194,22 @@ export function Finance({ company, user }: { company: CompanyRef; user: User }) 
   }
 
   async function save(values: Record<string, any>) {
-    const payload = {
+    const payload: Record<string, any> = {
       ...values,
       company_id: company.company_id,
-      created_by: user.id,
-      net_total: values.net_total === undefined ? undefined : Number(values.net_total),
-      valid_until: values.valid_until || null,
-      due_date: values.due_date || null
+      created_by: user.id
+    }
+    if (tab !== "clients") payload.net_total = Number(values.net_total || 0)
+    if (tab === "quotes") {
+      payload.valid_until = values.valid_until || null
+      delete payload.due_date
+    } else if (tab === "invoices") {
+      payload.due_date = values.due_date || null
+      delete payload.valid_until
+    } else {
+      delete payload.net_total
+      delete payload.valid_until
+      delete payload.due_date
     }
     const { error: insertError } = await supabase.from(tab).insert(payload)
     if (insertError) throw insertError
@@ -388,7 +397,7 @@ function Pill({ value }: { value: string }) {
 }
 
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return <div className="modal-wrap"><div className="scrim" onClick={onClose} /><div className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-btn" onClick={onClose}>×</button></div>{children}</div></div>
+  return <div className="modal-wrap"><div className="scrim" onClick={onClose} /><div className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-btn" aria-label="Ablak bezárása" onClick={onClose}>×</button></div>{children}</div></div>
 }
 
 function InlineNotice({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,19 @@
 # Változásnapló
 
+## 10.0.2 – Android In-App Updates (2026-08-20)
+
+### Új
+
+- Natív Androidon automatikus verzióellenőrzés a legfrissebb stabil GitHub Release alapján.
+- Új verzió esetén globális frissítési banner az aktuális és az elérhető verzióval.
+- Egy gombos APK-letöltés és az Android telepítési folyamatának indítása.
+- Újraellenőrzés az appba való visszatéréskor, időkorlátozott lekérdezéssel és csendes hálózati hibakezeléssel.
+
+### Fontos
+
+- A 10.0.2 verziót egyszer manuálisan telepíteni kell; ettől kezdve a későbbi APK-frissítéseket az app automatikusan jelzi.
+- Az Android biztonsági modellje miatt a telepítés végső jóváhagyása továbbra is felhasználói megerősítést igényel.
+
 ## 10.0.1 – Document Intelligence Stabilized (2026-08-20)
 
 ### Javítva és ellenőrizve
@@ -57,4 +71,3 @@
 - Vite környezeti változók TypeScript-típusai.
 - A Node/Vite TypeScript projekt hibás emit-konfigurációja.
 - Egységes 6.0 verziójelzés és kiadási dokumentáció.
-

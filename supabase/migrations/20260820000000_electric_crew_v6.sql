@@ -305,6 +305,7 @@ alter table public.tasks add column if not exists notes text;
 alter table public.materials add column if not exists sku text;
 alter table public.materials add column if not exists stock_quantity numeric not null default 0;
 alter table public.materials add column if not exists min_stock_quantity numeric not null default 0;
+alter table public.materials add column if not exists average_price numeric not null default 0;
 alter table public.materials add column if not exists updated_at timestamptz not null default now();
 alter table public.tool_requests add column if not exists title text;
 alter table public.tool_requests add column if not exists description text;
@@ -315,6 +316,9 @@ alter table public.procurements add column if not exists title text;
 alter table public.procurements add column if not exists project_id uuid references public.projects(id) on delete set null;
 alter table public.procurements add column if not exists created_by uuid references public.profiles(id) on delete set null;
 alter table public.procurements add column if not exists updated_at timestamptz not null default now();
+alter table public.documents add column if not exists document_type text;
+alter table public.documents add column if not exists ai_summary text;
+alter table public.documents add column if not exists ai_fields jsonb not null default '{}'::jsonb;
 
 do $$
 begin
@@ -628,7 +632,7 @@ create policy company_update on public.notifications for update to authenticated
 using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
 
 -- Financial records require a management role.
-do $
+do $$
 declare table_name text;
 begin
   foreach table_name in array array['clients','quotes','invoices']
@@ -673,6 +677,17 @@ create policy company_documents_update on storage.objects for update to authenti
 using (
   bucket_id='company-documents'
   and (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
+  bucket_id='company-documents'
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
+);
+drop policy if exists company_documents_delete on storage.objects;
+create policy company_documents_delete on storage.objects for delete to authenticated
+using (
+  bucket_id='company-documents'
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
+);
+
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
 )
 with check (
   bucket_id='company-documents'
@@ -695,5 +710,19 @@ drop policy if exists company_documents_delete on storage.objects;
 create policy company_documents_delete on storage.objects for delete to authenticated
 using (
   bucket_id='company-documents'
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
+);
+
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
+)
+with check (
+  bucket_id='company-documents'
+  and private.is_company_member(((storage.foldername(name))[1])::uuid)
+);
+drop policy if exists company_documents_delete on storage.objects;
+create policy company_documents_delete on storage.objects for delete to authenticated
+using (
+  bucket_id='company-documents'
+  and (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   and private.is_company_member(((storage.foldername(name))[1])::uuid)
 );

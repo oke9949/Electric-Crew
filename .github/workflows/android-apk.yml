@@ -70,7 +70,9 @@ jobs:
       - name: Generate branded launcher icon
         run: |
           mkdir -p android/app/src/main/res/drawable-nodpi
-          convert public/ec-mark.svg -resize 512x512 android/app/src/main/res/drawable-nodpi/ec_launcher.png
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+          rsvg-convert -w 512 -h 512 -o android/app/src/main/res/drawable-nodpi/ec_launcher.png public/ec-mark.svg
           sed -i 's#@mipmap/ic_launcher_round#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
           sed -i 's#@mipmap/ic_launcher#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
 

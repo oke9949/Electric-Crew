@@ -1,5 +1,22 @@
 # Változásnapló
 
+## 10.0.0 – Document Intelligence (2026-08-20)
+
+### Új
+
+- AI-alapú számlafeldolgozás külön anyagtételekkel és pénzügyi bejegyzéssel.
+- Dokumentum anyaglista nettó tételértékekkel és forrásfájlokkal.
+- Vezetői pénzügyi összesítő bevétel, kiadás, egyenleg és ÁFA bontásban.
+- DWG gépészeti rajzok ellenőrzött szöveg- és berendezéskinyerése.
+- A feltöltött számla 11 tételének és a DWG berendezésjelöléseinek feldolgozott mintadata.
+
+### Javítva
+
+- Az alkalmazás indulását blokkoló külső Leaflet CDN-függőség megszüntetve.
+- A térkép és az oldalsáv Android WebView-ban is helyi, verziórögzített csomagból indul.
+- Dokumentum-AI eredményei idempotensen frissítik az anyag- és pénzügyi táblákat.
+- Cégszintű RLS és explicit Data API-jogok az új dokumentum-intelligencia táblákon.
+
 ## 6.0.1 – Collaboration & Intelligence (2026-08-20)
 
 ### Új
@@ -31,3 +48,4 @@
 - Vite környezeti változók TypeScript-típusai.
 - A Node/Vite TypeScript projekt hibás emit-konfigurációja.
 - Egységes 6.0 verziójelzés és kiadási dokumentáció.
+

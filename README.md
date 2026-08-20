@@ -1,8 +1,8 @@
-# Electric Crew 6.0
+# Electric Crew 10.0
 
 Mobilközpontú, többcéges belső vállalatirányítási rendszer React, TypeScript és Supabase alapon.
 
-## 6.0 modulok
+## 10.0 modulok
 
 - Supabase Auth, profilok, több cég és szerepkörök
 - Projektek, műszaki rendszerek, feladatok és felelősök
@@ -15,6 +15,9 @@ Mobilközpontú, többcéges belső vállalatirányítási rendszer React, TypeS
 - Adatalapú, helyben futó döntéstámogató elemzés
 - Értesítések, auditálható műveletek és mobil PWA
 - Cégszintű RLS és privát Supabase Storage
+- AI dokumentumfeldolgozás, tételes anyaglista és pénzügyi összesítő
+- DWG rajz-metaadatok és gépészeti berendezésjelölések feldolgozása
+- Valós idejű chatszobák, vállalati AI-asszisztens és térkép
 
 ## Követelmények
 
@@ -70,6 +73,7 @@ A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a pro
 
 ## Kiadás
 
-Aktuális verzió: **6.0.1 – Collaboration & Intelligence**
+Aktuális verzió: **10.0.0 – Document Intelligence**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).
+

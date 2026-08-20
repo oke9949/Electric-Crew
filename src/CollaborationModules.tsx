@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
   Bot, Building2, FileSearch, LocateFixed, MapPinned, MessageCircle,
   Plus, RefreshCw, Send, Sparkles, Users
@@ -177,6 +179,8 @@ export function DocumentAiButton({company,document,onDone}:{company:CompanyRef;d
   async function analyze(){
     setBusy(true)
     try{
+      const isDwg=String(document.file_name||'').toLowerCase().endsWith('.dwg')
+      if(isDwg)throw new Error('A DWG bináris rajz közvetlenül nem olvasható az AI számára. Tölts fel ugyanebből a rajzból PDF-exportot vagy képi előnézetet; a rendszer azt anyaglistává tudja alakítani, a DWG pedig megmarad eredeti forrásként.')
       const signed=await supabase.storage.from('company-documents').createSignedUrl(document.storage_path,300)
       if(signed.error)throw signed.error
       const {data:{session}}=await supabase.auth.getSession()
@@ -186,12 +190,37 @@ export function DocumentAiButton({company,document,onDone}:{company:CompanyRef;d
       if(!response.ok)throw new Error(result.error||'A dokumentumelemzés nem sikerült.')
       const updated=await supabase.from('documents').update({document_type:result.documentType||document.description||'egyeb',ai_summary:result.summary,ai_fields:result.fields||{}}).eq('id',document.id)
       if(updated.error)throw updated.error
+      const cleared=await supabase.from('document_material_items').delete().eq('document_id',document.id)
+      if(cleared.error)throw cleared.error
+      const materials=(Array.isArray(result.materials)?result.materials:[]).filter((item:any)=>String(item?.name||'').trim()).map((item:any,index:number)=>({
+        company_id:company.company_id,document_id:document.id,project_id:document.project_id||null,line_number:index+1,
+        name:String(item.name).trim(),sku:item.sku||null,quantity:numberOrNull(item.quantity),unit:item.unit||null,
+        unit_price:numberOrNull(item.unitPrice),total_price:numberOrNull(item.totalPrice),currency:item.currency||result.fields?.currency||'HUF',
+        confidence:confidenceOrNull(item.confidence),source_text:item.sourceText||null
+      }))
+      if(materials.length){const inserted=await supabase.from('document_material_items').insert(materials);if(inserted.error)throw inserted.error}
+      if(result.financial){
+        const f=result.financial
+        const saved=await supabase.from('financial_entries').upsert({
+          company_id:company.company_id,source_document_id:document.id,project_id:document.project_id||null,entry_type:f.entryType==='INCOME'?'INCOME':'EXPENSE',
+          counterparty:f.counterparty||result.fields?.supplier||result.fields?.customer||null,reference_number:f.referenceNumber||result.fields?.invoiceNumber||null,
+          issue_date:dateOrNull(f.issueDate||result.fields?.issueDate),due_date:dateOrNull(f.dueDate||result.fields?.dueDate),
+          net_amount:numberOrZero(f.netAmount??result.fields?.netTotal),vat_amount:numberOrZero(f.vatAmount??result.fields?.vatTotal),gross_amount:numberOrZero(f.grossAmount??result.fields?.grossTotal),
+          currency:f.currency||result.fields?.currency||'HUF',status:f.status||'RECORDED',confidence:confidenceOrNull(f.confidence),created_by:session.user.id,updated_at:new Date().toISOString()
+        },{onConflict:'source_document_id'})
+        if(saved.error)throw saved.error
+      }
       onDone()
     }catch(e){window.alert(errorText(e))}
     finally{setBusy(false)}
   }
   return <button className="btn ai-doc-btn" onClick={()=>void analyze()} disabled={busy} title="A dokumentum tartalmának feldolgozása"><FileSearch size={16}/>{busy?'AI elemzés…':document.ai_summary?'Újraelemzés':'AI elemzés'}</button>
 }
+
+function numberOrNull(value:any){const number=Number(value);return value===null||value===''||!Number.isFinite(number)?null:number}
+function numberOrZero(value:any){return numberOrNull(value)??0}
+function confidenceOrNull(value:any){const number=numberOrNull(value);return number===null?null:Math.min(1,Math.max(0,number))}
+function dateOrNull(value:any){return /^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):null}
 
 export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
   const mapRef=useRef<HTMLDivElement|null>(null)
@@ -230,8 +259,7 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
   useEffect(()=>{
     let cancelled=false
     const render=()=>{
-      const L=(window as any).L
-      if(cancelled||!mapRef.current||!L)return false
+      if(cancelled||!mapRef.current)return false
       if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}
       const first=points[0]||{lat:47.4979,lng:19.0402}
       const map=L.map(mapRef.current).setView([first.lat,first.lng],points.length?12:7)
@@ -242,7 +270,7 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
       mapInstance.current=map
       return true
     }
-    if(!render()){const timer=window.setInterval(()=>{if(render())window.clearInterval(timer)},250);return()=>{cancelled=true;window.clearInterval(timer);if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}}}
+    render()
     return()=>{cancelled=true;if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}}
   },[points])
 
@@ -276,3 +304,4 @@ function escapeHtml(value:string){return value.replace(/[&<>'"]/g,char=>({'&':'&
 function InlineNotice({children}:{children:any}){return <div className="notice error"><span>{children}</span></div>}
 function Busy(){return <div className="loading"><RefreshCw className="spin"/> Betöltés…</div>}
 function Empty({icon:Icon,text}:{icon:any;text:string}){return <div className="empty"><Icon size={30}/><span>{text}</span></div>}
+

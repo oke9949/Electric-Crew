@@ -1,2 +1,3 @@
-export const APP_VERSION = "6.0.1"
-export const RELEASE_NAME = "Collaboration & Intelligence"
+export const APP_VERSION = "10.0.0"
+export const RELEASE_NAME = "Document Intelligence"
+

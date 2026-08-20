@@ -9,7 +9,7 @@ import { supabase } from "./supabase"
 
 type CompanyRef = { company_id: string; company_name: string; role: string; status: string }
 type OperationTab = "problems" | "help_requests" | "tool_requests" | "procurements"
-type FinanceTab = "clients" | "quotes" | "invoices"
+type FinanceTab = "clients" | "quotes" | "invoices" | "documents"
 type FieldDef = [string, string, "text" | "email" | "number" | "date" | "textarea" | "select", Array<[string, string]>?]
 
 const operationConfig: Record<OperationTab, {
@@ -147,14 +147,16 @@ export function Finance({ company, user }: { company: CompanyRef; user: User }) 
   const [editing, setEditing] = useState<Record<string, any> | null>(null)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState("")
-  const labels: Record<FinanceTab, string> = { clients: "Ügyfelek", quotes: "Ajánlatok", invoices: "Számlák" }
+  const labels: Record<FinanceTab, string> = { clients: "Ügyfelek", quotes: "Ajánlatok", invoices: "Számlák", documents: "AI pénzügyi összesítő" }
 
   async function load() {
     setBusy(true)
     setError("")
+    const table=tab==="documents"?"financial_entries":tab
+    const selection=tab==="documents"?"*,documents!financial_entries_source_document_id_fkey(file_name)":"*"
     const { data, error: queryError } = await supabase
-      .from(tab)
-      .select("*")
+      .from(table)
+      .select(selection)
       .eq("company_id", company.company_id)
       .order("created_at", { ascending: false })
       .limit(250)
@@ -217,32 +219,36 @@ export function Finance({ company, user }: { company: CompanyRef; user: User }) 
     await load()
   }
 
-  const total = useMemo(() => rows.reduce((sum, row) => sum + Number(row.net_total || 0), 0), [rows])
+  const total = useMemo(() => rows.reduce((sum, row) => sum + Number(tab==="documents"?row.gross_amount:row.net_total || 0), 0), [rows,tab])
+  const documentIncome=useMemo(()=>rows.filter(row=>row.entry_type==='INCOME').reduce((sum,row)=>sum+Number(row.gross_amount||0),0),[rows])
+  const documentExpense=useMemo(()=>rows.filter(row=>row.entry_type==='EXPENSE').reduce((sum,row)=>sum+Number(row.gross_amount||0),0),[rows])
+  const documentVat=useMemo(()=>rows.reduce((sum,row)=>sum+Number(row.vat_amount||0),0),[rows])
 
   return <>
     <PageTitle
       title="Pénzügy és ügyfelek"
       text="Ügyféltörzs, ajánlatok és számlakövetés."
-      action={<button className="btn primary" onClick={() => setEditing(empty())}><Plus size={17} />Új</button>}
+      action={tab!=="documents"?<button className="btn primary" onClick={() => setEditing(empty())}><Plus size={17} />Új</button>:undefined}
     />
     <TabStrip items={(Object.keys(labels) as FinanceTab[]).map(key => [key, labels[key]])} value={tab} onChange={value => setTab(value as FinanceTab)} />
-    {tab !== "clients" && <div className="summary-line">
+    {tab !== "clients" && tab!=="documents" && <div className="summary-line">
       <Metric icon={CircleDollarSign} label="Összes nettó érték" value={money(total)} />
       <Metric icon={FileText} label="Tételek" value={rows.length} />
     </div>}
+    {tab==="documents"&&<div className="kpi-grid"><Metric icon={TrendingUp} label="Bevétel" value={money(documentIncome)}/><Metric icon={ShoppingCart} label="Kiadás" value={money(documentExpense)} danger/><Metric icon={CircleDollarSign} label="Egyenleg" value={money(documentIncome-documentExpense)}/><Metric icon={FileText} label="ÁFA" value={money(documentVat)}/></div>}
     {error && <InlineNotice>{error}</InlineNotice>}
     {busy ? <Busy /> : <div className="table-card">
       <div className="mobile-cards">
         {rows.map(row => <div className="mobile-entity" key={row.id}>
-          <div className="row"><div><b>{row.name || row.number || row.title}</b><span>{row.client_name || row.contact_name || row.email || "—"}</span></div>{row.status && <Pill value={row.status} />}</div>
+          <div className="row"><div><b>{row.name || row.number || row.reference_number || row.title}</b><span>{row.client_name || row.counterparty || row.contact_name || row.email || "—"}</span></div>{row.status && <Pill value={row.status} />}</div>
         </div>)}
       </div>
       <table>
-        <thead><tr><th>{tab === "clients" ? "Ügyfél" : "Azonosító"}</th><th>Kapcsolat / megnevezés</th>{tab !== "clients" && <th>Nettó érték</th>}<th>Állapot</th></tr></thead>
+        <thead><tr><th>{tab === "clients" ? "Ügyfél" : "Azonosító"}</th><th>Kapcsolat / megnevezés</th>{tab !== "clients" && <th>{tab==='documents'?'Bruttó érték':'Nettó érték'}</th>}<th>Állapot</th></tr></thead>
         <tbody>{rows.map(row => <tr key={row.id}>
-          <td><b>{row.name || row.number || "—"}</b></td>
-          <td>{row.client_name || row.contact_name || row.title || "—"}<span>{row.email || row.phone || ""}</span></td>
-          {tab !== "clients" && <td className="money">{money(row.net_total)}</td>}
+          <td><b>{row.name || row.number || row.reference_number || "—"}</b></td>
+          <td>{row.client_name || row.counterparty || row.contact_name || row.title || "—"}<span>{row.documents?.file_name || row.email || row.phone || ""}</span></td>
+          {tab !== "clients" && <td className="money">{money(tab==='documents'?row.gross_amount:row.net_total)}</td>}
           <td>{row.status ? <Pill value={row.status} /> : <Pill value="ACTIVE" />}</td>
         </tr>)}</tbody>
       </table>
@@ -410,3 +416,4 @@ function formatDate(value?: string) { return value ? new Intl.DateTimeFormat("hu
 function formatQuantity(row: Record<string, any>) { return row.quantity ? String(row.quantity) + " " + String(row.unit || "") : "" }
 function money(value: number) { return new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(value || 0)) }
 function average(values: number[]) { return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0 }
+

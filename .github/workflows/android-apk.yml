@@ -115,3 +115,4 @@ jobs:
               --title "Electric Crew ${APP_VERSION} Android" \
               --notes "Telepíthető Android APK az Electric Crew ${APP_VERSION} kiadásához."
           fi
+

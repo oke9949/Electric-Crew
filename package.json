@@ -1,7 +1,7 @@
 {
   "name": "electric-crew-app",
   "private": true,
-  "version": "6.0.1",
+  "version": "10.0.0",
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
@@ -15,12 +15,14 @@
     "@capacitor/android": "8.5.0",
     "@capacitor/core": "8.5.0",
     "@supabase/supabase-js": "2.112.3",
+    "leaflet": "1.9.4",
     "lucide-react": "0.468.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.0",
+    "@types/leaflet": "1.9.22",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "4.7.0",
@@ -34,3 +36,4 @@
     ]
   }
 }
+

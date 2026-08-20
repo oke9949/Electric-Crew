@@ -33,18 +33,49 @@ const errText=(e:any)=>e?.message || 'Ismeretlen hiba történt.'
 export default function App(){
   const [session,setSession]=useState<Session|null>(null)
   const [loading,setLoading]=useState(true)
-  useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)});const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[])
+  const [recovering,setRecovering]=useState(()=>window.location.hash.includes('type=recovery')||new URLSearchParams(window.location.search).get('type')==='recovery')
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)})
+    const {data}=supabase.auth.onAuthStateChange((event,s)=>{if(event==='PASSWORD_RECOVERY')setRecovering(true);setSession(s)})
+    return()=>data.subscription.unsubscribe()
+  },[])
   if(loading) return <Splash/>
+  if(recovering) return <UpdatePasswordScreen onDone={()=>setRecovering(false)}/>
   if(!session) return <AuthScreen/>
   return <CompanyGate user={session.user}/>
 }
 
 function Splash(){return <div className="splash"><div className="bolt">E</div><strong>Electric Crew</strong><span>Betöltés…</span></div>}
 
+function authErrorText(e:any){
+  const code=e?.code||''; const message=String(e?.message||'')
+  if(code==='invalid_credentials'||message.toLowerCase().includes('invalid login credentials'))return 'Hibás e-mail cím vagy jelszó. Ha nem emlékszel a jelszóra, kérj új beállítási linket.'
+  if(code==='email_not_confirmed')return 'Az e-mail cím még nincs megerősítve. Nyisd meg a regisztrációkor kapott levelet.'
+  if(code==='over_request_rate_limit')return 'Túl sok próbálkozás történt. Várj néhány percet, majd próbáld újra.'
+  return errText(e)
+}
+
 function AuthScreen(){
-  const [mode,setMode]=useState<'login'|'signup'>('login'); const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [name,setName]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [info,setInfo]=useState('')
-  async function submit(e:any){e.preventDefault();setBusy(true);setError('');setInfo('');try{if(mode==='login'){const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error}else{const {data,error}=await supabase.auth.signUp({email,password,options:{data:{display_name:name||email.split('@')[0]}}});if(error)throw error;if(!data.session)setInfo('A regisztráció elkészült. Ha e-mail megerősítés aktív, nyisd meg a kapott levelet.')}}catch(e){setError(errText(e))}finally{setBusy(false)}}
-  return <div className="auth-wrap"><div className="auth-card"><div className="brand-lockup"><div className="bolt">E</div><div><b>Electric Crew</b><span>Belső vállalati rendszer</span></div></div><h1>{mode==='login'?'Belépés':'Fiók létrehozása'}</h1><p className="muted">Projektek, rendszerek, feladatok és anyagok egy helyen.</p><form onSubmit={submit}>{mode==='signup'&&<Field label="Név"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Teljes név" required/></Field>}<Field label="E-mail"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nev@ceg.hu" required/></Field><Field label="Jelszó"><input type="password" minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Legalább 6 karakter" required/></Field>{error&&<Notice type="error">{error}</Notice>}{info&&<Notice type="ok">{info}</Notice>}<button className="btn primary wide" disabled={busy}>{busy?'Dolgozom…':mode==='login'?'Belépés':'Regisztráció'}</button></form><button className="link-btn" onClick={()=>setMode(mode==='login'?'signup':'login')}>{mode==='login'?'Nincs még fiókod? Regisztráció':'Van már fiókod? Belépés'}</button></div></div>
+  const [mode,setMode]=useState<'login'|'signup'|'forgot'>('login'); const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [name,setName]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [info,setInfo]=useState('')
+  function switchMode(next:'login'|'signup'|'forgot'){setMode(next);setError('');setInfo('');setPassword('')}
+  async function submit(e:any){e.preventDefault();setBusy(true);setError('');setInfo('');try{
+    if(mode==='login'){
+      const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error)throw error
+    }else if(mode==='signup'){
+      const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{display_name:name||email.split('@')[0]}}});if(error)throw error;if(!data.session)setInfo('A regisztráció elkészült. Nyisd meg a kapott megerősítő levelet.')
+    }else{
+      const {error}=await supabase.auth.resetPasswordForEmail(email.trim(),{redirectTo:'https://electric-crew-app.vercel.app/'});if(error)throw error
+      setInfo('Ha ehhez az e-mail címhez tartozik fiók, elküldtük a jelszóbeállító linket. Ellenőrizd a spam mappát is.')
+    }
+  }catch(e){setError(authErrorText(e))}finally{setBusy(false)}}
+  const title=mode==='login'?'Belépés':mode==='signup'?'Fiók létrehozása':'Elfelejtett jelszó'
+  return <div className="auth-wrap"><div className="auth-card"><div className="brand-lockup"><div className="bolt">E</div><div><b>Electric Crew</b><span>Belső vállalati rendszer</span></div></div><h1>{title}</h1><p className="muted">{mode==='forgot'?'Add meg az e-mail címed, és küldünk egy biztonságos jelszóbeállító linket.':'Projektek, rendszerek, feladatok és anyagok egy helyen.'}</p><form onSubmit={submit}>{mode==='signup'&&<Field label="Név"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Teljes név" required/></Field>}<Field label="E-mail"><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nev@ceg.hu" required/></Field>{mode!=='forgot'&&<Field label="Jelszó"><input type="password" autoComplete={mode==='login'?'current-password':'new-password'} minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Legalább 6 karakter" required/></Field>}{error&&<Notice type="error">{error}</Notice>}{info&&<Notice type="ok">{info}</Notice>}<button className="btn primary wide" disabled={busy}>{busy?'Dolgozom…':mode==='login'?'Belépés':mode==='signup'?'Regisztráció':'Jelszóbeállító link küldése'}</button></form>{mode==='login'&&<button type="button" className="link-btn" onClick={()=>switchMode('forgot')}>Elfelejtetted a jelszavad?</button>}<button type="button" className="link-btn" onClick={()=>switchMode(mode==='login'?'signup':'login')}>{mode==='login'?'Nincs még fiókod? Regisztráció':'Vissza a belépéshez'}</button></div></div>
+}
+
+function UpdatePasswordScreen({onDone}:{onDone:()=>void}){
+  const [password,setPassword]=useState(''); const [confirm,setConfirm]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [done,setDone]=useState(false)
+  async function submit(e:any){e.preventDefault();setError('');if(password!==confirm){setError('A két jelszó nem egyezik.');return}setBusy(true);const {error}=await supabase.auth.updateUser({password});setBusy(false);if(error)setError(authErrorText(error));else setDone(true)}
+  return <div className="auth-wrap"><div className="auth-card"><div className="brand-lockup"><div className="bolt">E</div><div><b>Electric Crew</b><span>Biztonságos fiók-helyreállítás</span></div></div><h1>Új jelszó beállítása</h1>{done?<><Notice type="ok">A jelszavad sikeresen megváltozott.</Notice><button className="btn primary wide" onClick={onDone}>Tovább az alkalmazásba</button></>:<form onSubmit={submit}><Field label="Új jelszó"><input type="password" autoComplete="new-password" minLength={8} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Legalább 8 karakter" required/></Field><Field label="Új jelszó ismét"><input type="password" autoComplete="new-password" minLength={8} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></Field>{error&&<Notice type="error">{error}</Notice>}<button className="btn primary wide" disabled={busy}>{busy?'Mentés…':'Új jelszó mentése'}</button></form>}</div></div>
 }
 
 function CompanyGate({user}:{user:User}){

@@ -24,3 +24,27 @@
 @media (max-width: 900px) {
   .report-grid, .insight-grid { grid-template-columns: 1fr; }
 }
+
+/* Electric Crew brand system */
+:root{--bg:#080808;--panel:#111;--panel2:#181818;--line:#303030;--muted:#9c9c9c;--text:#f7f7f7;--accent:#f51f27;--accentText:#fff;--brand-red:#f51f27;--red:#ff5960}
+body{background:var(--bg)}
+.splash{background:radial-gradient(circle at 50% 35%,#f51f2718 0,transparent 38%),var(--bg)}
+.splash-wordmark{width:min(280px,72vw);height:auto;background:#fff;border-radius:24px;padding:14px;box-shadow:0 22px 70px #000b}
+.brand-lockup-wordmark{display:grid;justify-items:start;gap:8px}
+.brand-wordmark{width:154px;height:auto;background:#fff;border-radius:14px;padding:7px}
+.brand-lockup-wordmark>span{margin:0;color:#aaa}
+.brand-mark{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:11px;padding:4px;flex:none}
+.auth-wrap{background:radial-gradient(circle at 18% 8%,#f51f2720 0,transparent 34%),var(--bg)}
+.auth-card{background:#101010;border-color:#333;box-shadow:0 24px 80px #000b}
+.btn.primary{background:var(--brand-red);color:#fff;border-color:var(--brand-red)}
+.btn.primary:hover{background:#d9151d;border-color:#d9151d}
+.field input:focus,.field select:focus,.field textarea:focus,.inline-form input:focus,.search-bar input:focus{border-color:var(--brand-red);box-shadow:0 0 0 3px #f51f271c}
+.nav-item:hover,.nav-item.active{background:#f51f2716;color:#fff}
+.nav-item.active{box-shadow:inset 3px 0 var(--brand-red)}
+.nav-item em,.dot{background:var(--brand-red);color:#fff}
+.progress i,.tabs button.active{background:var(--brand-red);color:#fff;border-color:var(--brand-red)}
+.kpi-icon,.list-icon,.avatar{background:#1b1b1b;color:#ddd}
+.topbar,.search-bar{background:#0c0c0ceb}
+.sidebar{background:#0c0c0c;border-right-color:#292929}
+.link-btn{color:#ff6b70}
+@media(max-width:720px){.brand-wordmark{width:132px}.splash-wordmark{width:min(240px,70vw)}}

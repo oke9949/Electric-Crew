@@ -67,6 +67,13 @@ jobs:
           sed -i 's/versionCode 1/versionCode 60000/' android/app/build.gradle
           sed -i 's/versionName "1.0"/versionName "6.0.0"/' android/app/build.gradle
 
+      - name: Generate branded launcher icon
+        run: |
+          mkdir -p android/app/src/main/res/drawable-nodpi
+          convert public/ec-mark.svg -resize 512x512 android/app/src/main/res/drawable-nodpi/ec_launcher.png
+          sed -i 's#@mipmap/ic_launcher_round#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
+          sed -i 's#@mipmap/ic_launcher#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
+
       - name: Build installable APK
         working-directory: android
         run: |

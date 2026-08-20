@@ -113,3 +113,56 @@ body{background:var(--bg)}
   .document-row .row-actions{width:100%;justify-content:flex-end}
 }
 
+/* Mobile responsive audit: keep every module inside the viewport. */
+html,body,#root{max-width:100%;overflow-x:clip}
+.app-shell,.main,.content,.page-hero,.cards-list,.table-card,.mobile-cards,.mobile-entity,.entity-grid,.two-col,.three-col,.settings-grid,.chat-layout,.chat-panel,.ai-chat,.map-layout,.map-card,.map-side{min-width:0;max-width:100%}
+.page-hero>div,.settings-card>div,.upload-panel>div>div,.row>div,.list-row>.grow,.notification>.grow{min-width:0}
+.page-hero h1,.page-hero p,.row b,.row span,.list-row b,.list-row span,.mobile-entity,.settings-card b,.settings-card small,.notification span,.message p,.ai-summary{overflow-wrap:anywhere;word-break:break-word}
+.row-actions,.hero-actions,.top-actions{min-width:0;max-width:100%}
+.row-actions{flex-wrap:wrap}
+.table-card{width:100%}
+.tabs{max-width:100%;overscroll-behavior-inline:contain}
+.field input,.field select,.field textarea,.inline-form input,.map-project-editor select,.message-composer textarea{min-width:0;max-width:100%}
+
+@media(max-width:800px){
+  .topbar{width:100%;max-width:100vw;gap:6px}
+  .topbar>div:first-of-type{min-width:0;overflow:hidden}
+  .topbar strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top-actions{flex:0 1 auto}
+  .content{width:100%}
+  .page-hero{flex-wrap:wrap}
+  .page-hero>div:first-child{flex:1 1 220px}
+  .hero-actions{display:flex;flex-wrap:wrap}
+  .kpi-grid,.summary-line{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi{min-width:0}
+  .kpi>div:last-child{min-width:0}
+  .kpi strong{overflow-wrap:anywhere;font-size:clamp(14px,4.8vw,18px)}
+  .upload-panel select,.upload-panel .btn{width:100%;min-width:0;max-width:100%}
+  .inline-form{grid-template-columns:minmax(0,1fr) auto}
+  .list-row,.notification,.operation-row{min-width:0}
+  .mobile-cards{width:100%}
+  .mobile-entity b,.mobile-entity span,.mobile-entity small{display:block;overflow-wrap:anywhere;word-break:break-word}
+  .mobile-entity small{color:var(--muted);font-size:10px;margin-top:5px}
+  .document-row{align-items:flex-start}
+  .document-row .grow{flex:1 1 calc(100% - 54px)}
+  .document-row .grow b,.document-row .grow span{white-space:normal}
+  .document-row .row-actions{width:100%;justify-content:flex-start}
+  .document-row .ai-doc-btn{white-space:normal;flex:1 1 150px}
+  .settings-card{min-width:0}
+  .modal{max-width:100vw;overflow-x:hidden}
+  .modal-head{gap:10px}
+  .modal-head h2{min-width:0;overflow-wrap:anywhere}
+  .chat-panel>header,.message>div{flex-wrap:wrap}
+  .message-composer textarea{width:100%}
+  .map-project-editor,.map-side .settings-card{min-width:0}
+  .bottom-nav button{min-width:0;overflow:hidden}
+  .bottom-nav span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+@media(max-width:430px){
+  .inline-form{grid-template-columns:1fr}
+  .inline-form .btn{width:100%}
+  .page-hero>div:first-child{flex-basis:100%}
+  .empty{padding:24px 14px;text-align:center}
+}
+

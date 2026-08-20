@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import AppUpdateManager from './AppUpdateManager'
 import './styles.css'
 import './sidebar-fix.css'
 
@@ -9,5 +10,5 @@ if ('serviceWorker' in navigator) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><App /></React.StrictMode>
+  <React.StrictMode><AppUpdateManager/><App /></React.StrictMode>
 )

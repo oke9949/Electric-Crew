@@ -48,3 +48,59 @@ body{background:var(--bg)}
 .sidebar{background:#0c0c0c;border-right-color:#292929}
 .link-btn{color:#ff6b70}
 @media(max-width:720px){.brand-wordmark{width:132px}.splash-wordmark{width:min(240px,70vw)}}
+
+
+/* Electric Crew collaboration modules */
+.collab-page,.assistant-page,.map-page{display:flex;flex-direction:column;gap:18px}
+.chat-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;min-height:620px}
+.chat-channels,.chat-panel,.ai-chat,.map-card,.map-side{background:var(--surface,#fff);border:1px solid var(--border,#e7e7e7);border-radius:18px;box-shadow:0 10px 32px rgba(0,0,0,.06)}
+.chat-channels{padding:16px;display:flex;flex-direction:column;gap:8px}
+.chat-channels>b{padding:4px 8px 10px}
+.chat-channels button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:0;border-radius:11px;background:transparent;text-align:left;color:inherit;cursor:pointer}
+.chat-channels button:hover,.chat-channels button.active{background:#fff0f1;color:var(--brand-red,#f51f27)}
+.chat-panel,.ai-chat{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.chat-panel>header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border,#e7e7e7)}
+.chat-panel h2{margin:3px 0 0}
+.message-stream{padding:20px;display:flex;flex:1;flex-direction:column;gap:12px;overflow:auto;min-height:420px;max-height:62vh;background:linear-gradient(180deg,#fafafa,#fff)}
+.message{align-self:flex-start;width:min(78%,720px);padding:12px 14px;border-radius:16px 16px 16px 4px;background:#f1f1f1;color:#171717}
+.message.mine{align-self:flex-end;border-radius:16px 16px 4px 16px;background:var(--brand-red,#f51f27);color:#fff}
+.message.ai-message{background:#111;color:#fff;border-left:4px solid var(--brand-red,#f51f27)}
+.message>div{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.message time{font-size:.72rem;opacity:.7}
+.message p{margin:7px 0 0;white-space:pre-wrap;line-height:1.5}
+.message-composer{display:flex;gap:12px;align-items:flex-end;padding:16px;border-top:1px solid var(--border,#e7e7e7);background:#fff}
+.message-composer textarea{flex:1;resize:vertical;min-height:48px}
+.ai-presets{display:flex;gap:9px;flex-wrap:wrap}
+.ai-live{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:999px;background:#fff0f1;color:#b40810;font-weight:700}
+.ai-thinking{display:flex;align-items:center;gap:9px;color:#666;padding:10px}
+.ai-doc-btn{white-space:nowrap;padding:8px 10px;font-size:.78rem}
+.document-row{align-items:flex-start}
+.ai-summary{display:block;margin-top:7px;max-width:760px;line-height:1.45;color:#555}
+.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px}
+.map-card{position:relative;overflow:hidden;min-height:600px}
+.ec-map{width:100%;height:600px;z-index:1}
+.map-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.76);z-index:2}
+.map-side{padding:16px;display:flex;flex-direction:column;gap:12px}
+.map-side .settings-card{box-shadow:none;border:1px solid var(--border,#e7e7e7)}
+.map-project-editor{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:#f7f7f7}
+.map-project-editor p{margin:0;color:#666;font-size:.84rem;line-height:1.45}
+.leaflet-control-attribution{font-size:10px}
+
+@media(max-width:900px){
+  .chat-layout,.map-layout{grid-template-columns:1fr}
+  .chat-channels{flex-direction:row;overflow:auto}
+  .chat-channels>b{display:none}
+  .chat-channels button{width:auto;min-width:max-content}
+  .map-side{display:grid;grid-template-columns:1fr 1fr}
+  .map-project-editor{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .message{width:90%}
+  .message-composer{flex-direction:column;align-items:stretch}
+  .message-stream{min-height:360px;max-height:55vh;padding:12px}
+  .ec-map,.map-card{height:480px;min-height:480px}
+  .map-side{grid-template-columns:1fr}
+  .map-project-editor{grid-column:auto}
+  .document-row{flex-wrap:wrap}
+  .document-row .row-actions{width:100%;justify-content:flex-end}
+}

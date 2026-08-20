@@ -66,6 +66,7 @@ jobs:
           pnpm exec cap sync android
           sed -i 's/versionCode 1/versionCode 60000/' android/app/build.gradle
           sed -i 's/versionName "1.0"/versionName "6.0.0"/' android/app/build.gradle
+          sed -i 's#<application#<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <application#' android/app/src/main/AndroidManifest.xml
 
       - name: Generate branded launcher icon
         run: |

@@ -231,9 +231,11 @@ function isReviewableItem(item:any){return Boolean(String(item?.name||'').trim()
 export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
   const mapRef=useRef<HTMLDivElement|null>(null)
   const mapInstance=useRef<any>(null)
+  const personMarkers=useRef<Record<string,any>>({})
   const [projects,setProjects]=useState<ProjectPoint[]>([])
   const [people,setPeople]=useState<UserPoint[]>([])
   const [selectedProject,setSelectedProject]=useState('')
+  const [selectedPerson,setSelectedPerson]=useState('')
   const [position,setPosition]=useState<{latitude:number;longitude:number;accuracy:number}|null>(null)
   const [busy,setBusy]=useState(true)
   const [error,setError]=useState('')
@@ -257,9 +259,13 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     return()=>{void supabase.removeChannel(channel)}
   },[company.company_id])
 
+  const activePeople=useMemo(()=>[...people].sort((a,b)=>(a.profile?.display_name||'Munkatárs').localeCompare(b.profile?.display_name||'Munkatárs','hu')),[people])
+  const selectedPersonPoint=activePeople.find(person=>person.user_id===selectedPerson)
+  useEffect(()=>{if(selectedPerson&&!people.some(person=>person.user_id===selectedPerson))setSelectedPerson('')},[people,selectedPerson])
+
   const points=useMemo(()=>[
-    ...projects.filter(p=>p.latitude!=null&&p.longitude!=null).map(p=>({lat:Number(p.latitude),lng:Number(p.longitude),label:p.project_code||p.name,type:'project'})),
-    ...people.map(p=>({lat:Number(p.latitude),lng:Number(p.longitude),label:p.profile?.display_name||'Munkatárs',type:'person'}))
+    ...projects.filter(p=>p.latitude!=null&&p.longitude!=null).map(p=>({id:p.id,lat:Number(p.latitude),lng:Number(p.longitude),label:p.project_code||p.name,type:'project'})),
+    ...people.map(p=>({id:p.user_id,lat:Number(p.latitude),lng:Number(p.longitude),label:p.profile?.display_name||'Munkatárs',type:'person'}))
   ],[projects,people])
 
   useEffect(()=>{
@@ -267,11 +273,17 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     const render=()=>{
       if(cancelled||!mapRef.current)return false
       if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}
+      personMarkers.current={}
       const first=points[0]||{lat:47.4979,lng:19.0402}
       const map=L.map(mapRef.current).setView([first.lat,first.lng],points.length?12:7)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map)
       const bounds:any[]=[]
-      points.forEach(point=>{const marker=L.circleMarker([point.lat,point.lng],{radius:9,color:point.type==='project'?'#f51f27':'#111',fillColor:point.type==='project'?'#f51f27':'#fff',fillOpacity:1,weight:3}).addTo(map);marker.bindPopup('<b>'+escapeHtml(point.label)+'</b><br>'+(point.type==='project'?'Projekt':'Munkatárs'));bounds.push([point.lat,point.lng])})
+      points.forEach(point=>{
+        const marker=L.circleMarker([point.lat,point.lng],{radius:9,color:point.type==='project'?'#f51f27':'#111',fillColor:point.type==='project'?'#f51f27':'#fff',fillOpacity:1,weight:3}).addTo(map)
+        marker.bindPopup('<b>'+escapeHtml(point.label)+'</b><br>'+(point.type==='project'?'Projekt':'Munkatárs'))
+        if(point.type==='person')personMarkers.current[point.id]=marker
+        bounds.push([point.lat,point.lng])
+      })
       if(bounds.length>1)map.fitBounds(bounds,{padding:[35,35]})
       mapInstance.current=map
       return true
@@ -279,6 +291,12 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     render()
     return()=>{cancelled=true;if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}}
   },[points])
+
+  function showPerson(){
+    if(!selectedPersonPoint||!mapInstance.current)return
+    mapInstance.current.setView([Number(selectedPersonPoint.latitude),Number(selectedPersonPoint.longitude)],17,{animate:true})
+    personMarkers.current[selectedPersonPoint.user_id]?.openPopup()
+  }
 
   async function shareLocation(){
     if(!navigator.geolocation){setError('A készülék nem támogatja a helymeghatározást.');return}
@@ -300,14 +318,14 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     {error&&<InlineNotice>{error}</InlineNotice>}
     <div className="map-layout"><section className="map-card"><div ref={mapRef} className="ec-map" aria-label="Electric Crew térkép"/>{busy&&<div className="map-loading"><Busy/></div>}</section>
       <aside className="map-side"><div className="settings-card"><MapPinned/><div><span>Aktív projektek</span><b>{projects.length}</b><small>{projects.filter(p=>p.latitude!=null).length} térképen</small></div></div><div className="settings-card"><Users/><div><span>Helyzetet megosztók</span><b>{people.length}</b><small>Csak aktív cégtagok számára látható</small></div></div>
+        <div className="map-project-editor"><b>Aktív munkatársak</b><p>Válassz ki egy helyzetet megosztó munkatársat, majd fókuszálj rá a térképen.</p><div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto',gap:8,alignItems:'stretch'}}><select aria-label="Aktív munkatárs kiválasztása" value={selectedPerson} onChange={e=>setSelectedPerson(e.target.value)}><option value="">Válassz munkatársat</option>{activePeople.map(person=><option key={person.user_id} value={person.user_id}>{person.profile?.display_name||'Munkatárs'}</option>)}</select><button className="btn primary" disabled={!selectedPersonPoint} onClick={showPerson}><LocateFixed size={16}/>Mutasd</button></div>{selectedPersonPoint&&<small>Utolsó frissítés: {timeText(selectedPersonPoint.captured_at)}{selectedPersonPoint.accuracy_m!=null?` · Pontosság: ±${Math.round(Number(selectedPersonPoint.accuracy_m))} m`:''}</small>}{!activePeople.length&&<small>Jelenleg nincs helyzetet megosztó munkatárs.</small>}</div>
         {['OWNER','ADMIN','MANAGER'].includes(company.role)&&<div className="map-project-editor"><b>Projekt helyzetének rögzítése</b><p>A saját aktuális koordinátádat rendelheted a kiválasztott projekthez.</p><select value={selectedProject} onChange={e=>setSelectedProject(e.target.value)}><option value="">Válassz projektet</option>{projects.map(p=><option key={p.id} value={p.id}>{p.project_code||p.name}</option>)}</select><button className="btn" disabled={!position||!selectedProject} onClick={()=>void saveProjectPoint()}><Building2 size={16}/>Koordináta mentése</button></div>}
       </aside>
     </div>
   </div>
 }
 
-function escapeHtml(value:string){return value.replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]||char))}
+function escapeHtml(value:string){return value.replace(/[&<>'\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[char]||char))}
 function InlineNotice({children}:{children:any}){return <div className="notice error"><span>{children}</span></div>}
 function Busy(){return <div className="loading"><RefreshCw className="spin"/> Betöltés…</div>}
 function Empty({icon:Icon,text}:{icon:any;text:string}){return <div className="empty"><Icon size={30}/><span>{text}</span></div>}
-

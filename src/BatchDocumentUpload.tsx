@@ -147,11 +147,11 @@ export function BatchDocumentUpload({company,user,projects,systems,onDone}:{
   function changeProject(next:string){setProject(next);setSystem('')}
 
   return <div className="upload-panel" aria-busy={busy}>
-    <div><Upload size={24}/><div><b>Csoportos feltöltés</b><span>Projektet és rendszert egyszer válassz, majd több képet vagy dokumentumot egyszerre.</span></div></div>
+    <div><Upload size={24}/><div><b>Csoportos feltöltés</b><span>Projektet és rendszert egyszer válassz, majd több képet vagy dokumentumot egyszerre. DWG és DXF fájlok is feltölthetők.</span></div></div>
     <select value={project} onChange={e=>changeProject(e.target.value)} disabled={busy} aria-label="Projekt kiválasztása"><option value="">Általános / nincs projekt</option>{projects.map(item=><option key={item.id} value={item.id}>{item.project_code||item.name}</option>)}</select>
     <select value={system} onChange={e=>setSystem(e.target.value)} disabled={busy||!project} aria-label="Rendszer kiválasztása"><option value="">Nincs rendszer</option>{filteredSystems.map(item=><option key={item.id} value={item.id}>{item.code}</option>)}</select>
     <select value={category} onChange={e=>setCategory(e.target.value)} disabled={busy} aria-label="Rendezési mód">{categories.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
-    <label className="btn primary file-btn">{busy?<><RefreshCw className="spin" size={16}/>Feldolgozás…</>:<><Sparkles size={16}/>Fájlok kiválasztása</>}<input type="file" multiple disabled={busy} accept="image/*,.pdf,.dwg,.dxf,.doc,.docx,.xls,.xlsx,.txt" onChange={e=>{void uploadFiles(e.currentTarget.files);e.currentTarget.value=''}}/></label>
+    <label className="btn primary file-btn">{busy?<><RefreshCw className="spin" size={16}/>Feldolgozás…</>:<><Sparkles size={16}/>Fájlok kiválasztása</>}<input type="file" multiple disabled={busy} onChange={e=>{void uploadFiles(e.currentTarget.files);e.currentTarget.value=''}}/></label>
     {status&&<div className="full" style={{display:'grid',gap:4}}><small>{busy&&status.current?`Feldolgozás: ${status.current}`:`Kész: ${status.completed}/${status.total}`}</small><small>Feltöltve: {status.uploaded} · Ellenőrzendő: {status.review} · Sikertelen: {status.failed}</small></div>}
     {message&&<div className="full" style={{display:'flex',gap:8,alignItems:'center'}}>{status?.failed?<AlertTriangle size={17}/>:<CheckCircle2 size={17}/>}<small>{message}</small></div>}
   </div>

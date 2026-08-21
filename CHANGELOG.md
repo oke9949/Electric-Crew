@@ -1,5 +1,13 @@
 # Változásnapló
 
+## 10.0.3 – In-App Update Test Release (2026-08-21)
+
+### Tesztkiadás
+
+- Új Android verzió az alkalmazáson belüli frissítésérzékelés kipróbálásához.
+- A 10.0.2 kliensnek a GitHub legfrissebb Android release-e alapján fel kell ajánlania a 10.0.3 APK-t.
+- A kiadás nem tartalmaz új üzleti funkciót; célja kizárólag az update flow ellenőrzése.
+
 ## 10.0.1 – Document Intelligence Stabilized (2026-08-20)
 
 ### Javítva és ellenőrizve
@@ -57,4 +65,3 @@
 - Vite környezeti változók TypeScript-típusai.
 - A Node/Vite TypeScript projekt hibás emit-konfigurációja.
 - Egységes 6.0 verziójelzés és kiadási dokumentáció.
-

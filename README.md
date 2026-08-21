@@ -40,9 +40,13 @@ Az `.env.local` értékei:
 ```dotenv
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+OPENAI_API_KEY=YOUR_SERVER_ONLY_OPENAI_KEY
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
-Kizárólag publishable kulcs kerülhet a kliensbe. A `service_role` és secret kulcsok használata a böngészőben tilos.
+Az `OPENAI_API_KEY` kizárólag szerveroldali Vercel környezeti változó lehet, soha ne kapjon `VITE_` előtagot és ne kerüljön Gitbe. Az AI elsődlegesen a közvetlen OpenAI Responses API-t használja. Opcionális fallbackként `AI_GATEWAY_API_KEY` és `AI_GATEWAY_MODEL` is beállítható; provider nélkül az API rövid magyar konfigurációs hibát ad.
+
+Kizárólag publishable Supabase-kulcs kerülhet a kliensbe. A `service_role`, provider- és egyéb secret kulcsok használata a böngészőben tilos.
 
 ## Adatbázis
 
@@ -67,6 +71,7 @@ A migráció a korábbi Electric Crew Alpha táblákat is kiegészíti, minden p
 ```bash
 pnpm typecheck
 pnpm build
+pnpm test:ai-provider
 ```
 
 A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a projektet.

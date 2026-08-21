@@ -23,5 +23,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:ai-provider
       - run: pnpm typecheck
       - run: pnpm build

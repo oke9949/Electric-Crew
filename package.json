@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --pretty false",
+    "typecheck": "tsc -b --pretty false && tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022,DOM --skipLibCheck api/ai.ts api/ai-provider.ts",
+    "test:ai-provider": "node --experimental-strip-types --test api/ai-provider.test.ts",
     "check": "pnpm typecheck && pnpm build",
     "preview": "vite preview --host 0.0.0.0"
   },

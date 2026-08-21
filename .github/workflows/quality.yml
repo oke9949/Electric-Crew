@@ -24,5 +24,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:ai-provider
+      - run: pnpm test:app-update
       - run: pnpm typecheck
       - run: pnpm build

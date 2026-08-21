@@ -15,6 +15,7 @@ const categories=[
   ['tanusitvany','Tanúsítvány'],['rajz','Rajz / terv'],['foto','Helyszíni fotó'],
   ['anyaglista','Anyaglista'],['egyeb','Egyéb']
 ]
+const AUTO_REVIEW_THRESHOLD=0.65
 
 export function BatchDocumentUpload({company,user,projects,systems,onDone}:{
   company:CompanyRef;user:User;projects:ProjectRef[];systems:SystemRef[];onDone:()=>void|Promise<void>
@@ -116,8 +117,8 @@ export function BatchDocumentUpload({company,user,projects,systems,onDone}:{
       const confidence=confidenceOrNull(result.classificationConfidence)
       const type=allowedType(result.documentType)?result.documentType:'egyeb'
       const classification:Classification={
-        type,confidence,reviewStatus:confidence!==null&&confidence>=0.65?'AUTO_CLASSIFIED':'NEEDS_REVIEW',
-        reason:confidence!==null&&confidence>=0.65?undefined:'Az AI besorolási bizonyossága nem elég magas.'
+        type,confidence,reviewStatus:confidence!==null&&confidence>=AUTO_REVIEW_THRESHOLD?'AUTO_CLASSIFIED':'NEEDS_REVIEW',
+        reason:confidence!==null&&confidence>=AUTO_REVIEW_THRESHOLD?undefined:'Az AI besorolási bizonyossága nem elég magas.'
       }
 
       const fields={...(result.fields||{}),_classification:{...classification,source:'AI',batchId}}

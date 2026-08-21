@@ -12,10 +12,22 @@ export type CompanyRef = { company_id:string; company_name:string; role:string; 
 type ChatChannel = { id:string; company_id:string; name:string; kind:string; project_id?:string|null }
 type ChatMessage = { id:string; channel_id:string; sender_id:string; body:string; created_at:string; sender?:{display_name?:string}|null }
 type ProjectPoint = { id:string; name:string; project_code?:string|null; location?:string|null; latitude?:number|null; longitude?:number|null }
+type SystemPoint = { id:string; project_id:string; code:string; name?:string|null; latitude?:number|null; longitude?:number|null; location_accuracy_m?:number|null; location_captured_at?:string|null }
 type UserPoint = { user_id:string; latitude:number; longitude:number; accuracy_m?:number|null; captured_at:string; sharing:boolean; profile?:{display_name?:string}|null }
+type GeoPoint = { latitude:number; longitude:number; accuracy:number }
 
 function errorText(reason:any){return reason?.message || 'A művelet nem sikerült.'}
 function timeText(value:string){return new Intl.DateTimeFormat('hu-HU',{hour:'2-digit',minute:'2-digit',month:'short',day:'numeric'}).format(new Date(value))}
+function getCurrentLocation(){
+  return new Promise<GeoPoint>((resolve,reject)=>{
+    if(!navigator.geolocation){reject(new Error('A készülék nem támogatja a helymeghatározást.'));return}
+    navigator.geolocation.getCurrentPosition(
+      result=>resolve({latitude:result.coords.latitude,longitude:result.coords.longitude,accuracy:result.coords.accuracy}),
+      reason=>reject(new Error('A helymeghatározás nem sikerült: '+reason.message)),
+      {enableHighAccuracy:true,timeout:15000,maximumAge:30000}
+    )
+  })
+}
 
 export function CompanyChat({company,user}:{company:CompanyRef;user:User}){
   const [channels,setChannels]=useState<ChatChannel[]>([])
@@ -232,11 +244,15 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
   const mapRef=useRef<HTMLDivElement|null>(null)
   const mapInstance=useRef<any>(null)
   const personMarkers=useRef<Record<string,any>>({})
+  const systemMarkers=useRef<Record<string,any>>({})
   const [projects,setProjects]=useState<ProjectPoint[]>([])
+  const [systems,setSystems]=useState<SystemPoint[]>([])
   const [people,setPeople]=useState<UserPoint[]>([])
   const [selectedProject,setSelectedProject]=useState('')
+  const [selectedSystem,setSelectedSystem]=useState('')
   const [selectedPerson,setSelectedPerson]=useState('')
-  const [position,setPosition]=useState<{latitude:number;longitude:number;accuracy:number}|null>(null)
+  const [position,setPosition]=useState<GeoPoint|null>(null)
+  const [locatingSystem,setLocatingSystem]=useState(false)
   const [busy,setBusy]=useState(true)
   const [error,setError]=useState('')
 
@@ -248,7 +264,17 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     ])
     if(p.error)throw p.error
     if(u.error)throw u.error
-    setProjects((p.data||[]) as ProjectPoint[]);setPeople((u.data||[]) as unknown as UserPoint[])
+    const nextProjects=(p.data||[]) as ProjectPoint[]
+    const projectIds=nextProjects.map(project=>project.id)
+    let nextSystems:SystemPoint[]=[]
+    if(projectIds.length){
+      const s=await supabase.from('systems').select('id,project_id,code,name,latitude,longitude,location_accuracy_m,location_captured_at').in('project_id',projectIds).order('code')
+      if(s.error)throw s.error
+      nextSystems=(s.data||[]) as SystemPoint[]
+    }
+    setProjects(nextProjects)
+    setSystems(nextSystems)
+    setPeople((u.data||[]) as unknown as UserPoint[])
   }
 
   useEffect(()=>{setBusy(true);load().catch(e=>setError(errorText(e))).finally(()=>setBusy(false))},[company.company_id])
@@ -261,12 +287,15 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
 
   const activePeople=useMemo(()=>[...people].sort((a,b)=>(a.profile?.display_name||'Munkatárs').localeCompare(b.profile?.display_name||'Munkatárs','hu')),[people])
   const selectedPersonPoint=activePeople.find(person=>person.user_id===selectedPerson)
+  const selectedSystemPoint=systems.find(system=>system.id===selectedSystem)
   useEffect(()=>{if(selectedPerson&&!people.some(person=>person.user_id===selectedPerson))setSelectedPerson('')},[people,selectedPerson])
+  useEffect(()=>{if(selectedSystem&&!systems.some(system=>system.id===selectedSystem))setSelectedSystem('')},[systems,selectedSystem])
 
   const points=useMemo(()=>[
     ...projects.filter(p=>p.latitude!=null&&p.longitude!=null).map(p=>({id:p.id,lat:Number(p.latitude),lng:Number(p.longitude),label:p.project_code||p.name,type:'project'})),
+    ...systems.filter(s=>s.latitude!=null&&s.longitude!=null).map(s=>({id:s.id,lat:Number(s.latitude),lng:Number(s.longitude),label:s.code+(s.name?' · '+s.name:''),type:'system'})),
     ...people.map(p=>({id:p.user_id,lat:Number(p.latitude),lng:Number(p.longitude),label:p.profile?.display_name||'Munkatárs',type:'person'}))
-  ],[projects,people])
+  ],[projects,systems,people])
 
   useEffect(()=>{
     let cancelled=false
@@ -274,14 +303,22 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
       if(cancelled||!mapRef.current)return false
       if(mapInstance.current){mapInstance.current.remove();mapInstance.current=null}
       personMarkers.current={}
+      systemMarkers.current={}
       const first=points[0]||{lat:47.4979,lng:19.0402}
       const map=L.map(mapRef.current).setView([first.lat,first.lng],points.length?12:7)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map)
       const bounds:any[]=[]
       points.forEach(point=>{
-        const marker=L.circleMarker([point.lat,point.lng],{radius:9,color:point.type==='project'?'#f51f27':'#111',fillColor:point.type==='project'?'#f51f27':'#fff',fillOpacity:1,weight:3}).addTo(map)
-        marker.bindPopup('<b>'+escapeHtml(point.label)+'</b><br>'+(point.type==='project'?'Projekt':'Munkatárs'))
+        const markerStyle=point.type==='project'
+          ?{radius:9,color:'#f51f27',fillColor:'#f51f27',fillOpacity:1,weight:3}
+          :point.type==='system'
+            ?{radius:8,color:'#2563eb',fillColor:'#dbeafe',fillOpacity:1,weight:3}
+            :{radius:9,color:'#111',fillColor:'#fff',fillOpacity:1,weight:3}
+        const marker=L.circleMarker([point.lat,point.lng],markerStyle).addTo(map)
+        const kind=point.type==='project'?'Projekt':point.type==='system'?'Rendszer':'Munkatárs'
+        marker.bindPopup('<b>'+escapeHtml(point.label)+'</b><br>'+kind)
         if(point.type==='person')personMarkers.current[point.id]=marker
+        if(point.type==='system')systemMarkers.current[point.id]=marker
         bounds.push([point.lat,point.lng])
       })
       if(bounds.length>1)map.fitBounds(bounds,{padding:[35,35]})
@@ -298,14 +335,38 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     personMarkers.current[selectedPersonPoint.user_id]?.openPopup()
   }
 
+  function showSystem(){
+    if(!selectedSystemPoint||selectedSystemPoint.latitude==null||selectedSystemPoint.longitude==null||!mapInstance.current)return
+    mapInstance.current.setView([Number(selectedSystemPoint.latitude),Number(selectedSystemPoint.longitude)],18,{animate:true})
+    systemMarkers.current[selectedSystemPoint.id]?.openPopup()
+  }
+
   async function shareLocation(){
-    if(!navigator.geolocation){setError('A készülék nem támogatja a helymeghatározást.');return}
-    navigator.geolocation.getCurrentPosition(async result=>{
-      const next={latitude:result.coords.latitude,longitude:result.coords.longitude,accuracy:result.coords.accuracy}
+    setError('')
+    try{
+      const next=await getCurrentLocation()
       setPosition(next)
       const {error}=await supabase.from('user_locations').upsert({company_id:company.company_id,user_id:user.id,latitude:next.latitude,longitude:next.longitude,accuracy_m:next.accuracy,sharing:true,captured_at:new Date().toISOString()},{onConflict:'company_id,user_id'})
-      if(error)setError(error.message);else void load()
-    },reason=>setError('A helymeghatározás nem sikerült: '+reason.message),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})
+      if(error)throw error
+      await load()
+    }catch(e){setError(errorText(e))}
+  }
+
+  async function saveSystemPoint(){
+    if(!selectedSystem)return
+    setLocatingSystem(true);setError('')
+    try{
+      const next=await getCurrentLocation()
+      const capturedAt=new Date().toISOString()
+      setPosition(next)
+      const {error}=await supabase.from('systems').update({
+        latitude:next.latitude,longitude:next.longitude,location_accuracy_m:next.accuracy,
+        location_captured_at:capturedAt,location_updated_by:user.id
+      }).eq('id',selectedSystem)
+      if(error)throw error
+      await load()
+    }catch(e){setError(errorText(e))}
+    finally{setLocatingSystem(false)}
   }
 
   async function saveProjectPoint(){
@@ -314,11 +375,17 @@ export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
     if(error)setError(error.message);else void load()
   }
 
-  return <div className="map-page"><div className="page-hero"><div><h1>Élő munkatérkép</h1><p>Aktív projektek és önként megosztott munkatársi helyzetek.</p></div><div className="hero-actions"><button className="btn primary" onClick={()=>void shareLocation()}><LocateFixed size={17}/>Saját helyzet megosztása</button></div></div>
+  const systemOptionLabel=(system:SystemPoint)=>{
+    const project=projects.find(item=>item.id===system.project_id)
+    return [project?.project_code||project?.name,system.code,system.name].filter(Boolean).join(' · ')
+  }
+
+  return <div className="map-page"><div className="page-hero"><div><h1>Élő munkatérkép</h1><p>Aktív projektek, műszaki rendszerek és önként megosztott munkatársi helyzetek.</p></div><div className="hero-actions"><button className="btn primary" onClick={()=>void shareLocation()}><LocateFixed size={17}/>Saját helyzet megosztása</button></div></div>
     {error&&<InlineNotice>{error}</InlineNotice>}
     <div className="map-layout"><section className="map-card"><div ref={mapRef} className="ec-map" aria-label="Electric Crew térkép"/>{busy&&<div className="map-loading"><Busy/></div>}</section>
-      <aside className="map-side"><div className="settings-card"><MapPinned/><div><span>Aktív projektek</span><b>{projects.length}</b><small>{projects.filter(p=>p.latitude!=null).length} térképen</small></div></div><div className="settings-card"><Users/><div><span>Helyzetet megosztók</span><b>{people.length}</b><small>Csak aktív cégtagok számára látható</small></div></div>
+      <aside className="map-side"><div className="settings-card"><MapPinned/><div><span>Aktív projektek</span><b>{projects.length}</b><small>{projects.filter(p=>p.latitude!=null).length} térképen</small></div></div><div className="settings-card"><Building2/><div><span>Rendszerek</span><b>{systems.length}</b><small>{systems.filter(s=>s.latitude!=null&&s.longitude!=null).length} térképen</small></div></div><div className="settings-card"><Users/><div><span>Helyzetet megosztók</span><b>{people.length}</b><small>Csak aktív cégtagok számára látható</small></div></div>
         <div className="map-project-editor"><b>Aktív munkatársak</b><p>Válassz ki egy helyzetet megosztó munkatársat, majd fókuszálj rá a térképen.</p><div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto',gap:8,alignItems:'stretch'}}><select aria-label="Aktív munkatárs kiválasztása" value={selectedPerson} onChange={e=>setSelectedPerson(e.target.value)}><option value="">Válassz munkatársat</option>{activePeople.map(person=><option key={person.user_id} value={person.user_id}>{person.profile?.display_name||'Munkatárs'}</option>)}</select><button className="btn primary" disabled={!selectedPersonPoint} onClick={showPerson}><LocateFixed size={16}/>Mutasd</button></div>{selectedPersonPoint&&<small>Utolsó frissítés: {timeText(selectedPersonPoint.captured_at)}{selectedPersonPoint.accuracy_m!=null?` · Pontosság: ±${Math.round(Number(selectedPersonPoint.accuracy_m))} m`:''}</small>}{!activePeople.length&&<small>Jelenleg nincs helyzetet megosztó munkatárs.</small>}</div>
+        <div className="map-project-editor"><b>Rendszer helyének megjelölése</b><p>Állj a rendszer mellett, válaszd ki, majd a „Jelöld ide” gomb friss GPS-koordinátát ment hozzá.</p><select aria-label="Rendszer kiválasztása helymegjelöléshez" value={selectedSystem} onChange={e=>setSelectedSystem(e.target.value)}><option value="">Válassz rendszert</option>{systems.map(system=><option key={system.id} value={system.id}>{systemOptionLabel(system)}</option>)}</select><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}><button className="btn" disabled={!selectedSystemPoint||selectedSystemPoint.latitude==null||selectedSystemPoint.longitude==null} onClick={showSystem}><MapPinned size={16}/>Mutasd</button><button className="btn primary" disabled={!selectedSystem||locatingSystem} onClick={()=>void saveSystemPoint()}><LocateFixed size={16}/>{locatingSystem?'GPS…':'Jelöld ide'}</button></div>{selectedSystemPoint?.location_captured_at&&<small>Utolsó jelölés: {timeText(selectedSystemPoint.location_captured_at)}{selectedSystemPoint.location_accuracy_m!=null?` · Pontosság: ±${Math.round(Number(selectedSystemPoint.location_accuracy_m))} m`:''}</small>}</div>
         {['OWNER','ADMIN','MANAGER'].includes(company.role)&&<div className="map-project-editor"><b>Projekt helyzetének rögzítése</b><p>A saját aktuális koordinátádat rendelheted a kiválasztott projekthez.</p><select value={selectedProject} onChange={e=>setSelectedProject(e.target.value)}><option value="">Válassz projektet</option>{projects.map(p=><option key={p.id} value={p.id}>{p.project_code||p.name}</option>)}</select><button className="btn" disabled={!position||!selectedProject} onClick={()=>void saveProjectPoint()}><Building2 size={16}/>Koordináta mentése</button></div>}
       </aside>
     </div>

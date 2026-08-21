@@ -181,6 +181,9 @@ export function DocumentAiButton({company,document,onDone}:{company:CompanyRef;d
     try{
       const isDwg=String(document.file_name||'').toLowerCase().endsWith('.dwg')
       if(isDwg)throw new Error('A DWG bináris rajz közvetlenül nem olvasható az AI számára. Tölts fel ugyanebből a rajzból PDF-exportot vagy képi előnézetet; a rendszer azt anyaglistává tudja alakítani, a DWG pedig megmarad eredeti forrásként.')
+      const booked=await supabase.from('document_material_items').select('id',{count:'exact',head:true}).eq('document_id',document.id).eq('stock_status','BOOKED')
+      if(booked.error)throw booked.error
+      if(booked.count)throw new Error('A dokumentum már tartalmaz raktárra vett tételeket, ezért nem elemezhető újra. Így a készletmozgások forrása és auditlánca változatlan marad.')
       const signed=await supabase.storage.from('company-documents').createSignedUrl(document.storage_path,300)
       if(signed.error)throw signed.error
       const {data:{session}}=await supabase.auth.getSession()
@@ -196,7 +199,9 @@ export function DocumentAiButton({company,document,onDone}:{company:CompanyRef;d
         company_id:company.company_id,document_id:document.id,project_id:document.project_id||null,line_number:index+1,
         name:String(item.name).trim(),sku:item.sku||null,quantity:numberOrNull(item.quantity),unit:item.unit||null,
         unit_price:numberOrNull(item.unitPrice),total_price:numberOrNull(item.totalPrice),currency:item.currency||result.fields?.currency||'HUF',
-        confidence:confidenceOrNull(item.confidence),source_text:item.sourceText||null
+        net_amount:numberOrNull(item.netAmount),vat_amount:numberOrNull(item.vatAmount),gross_amount:numberOrNull(item.grossAmount),
+        confidence:confidenceOrNull(item.confidence),source_text:item.sourceText||null,
+        stock_status:isReviewableItem(item)?'PENDING':'NEEDS_REVIEW'
       }))
       if(materials.length){const inserted=await supabase.from('document_material_items').insert(materials);if(inserted.error)throw inserted.error}
       if(result.financial){
@@ -221,6 +226,7 @@ function numberOrNull(value:any){const number=Number(value);return value===null|
 function numberOrZero(value:any){return numberOrNull(value)??0}
 function confidenceOrNull(value:any){const number=numberOrNull(value);return number===null?null:Math.min(1,Math.max(0,number))}
 function dateOrNull(value:any){return /^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):null}
+function isReviewableItem(item:any){return Boolean(String(item?.name||'').trim()&&Number(item?.quantity)>0&&String(item?.unit||'').trim()&&Number(item?.confidence??1)>=0.6)}
 
 export function CompanyMap({company,user}:{company:CompanyRef;user:User}){
   const mapRef=useRef<HTMLDivElement|null>(null)

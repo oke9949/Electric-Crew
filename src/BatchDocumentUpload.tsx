@@ -104,10 +104,11 @@ export function BatchDocumentUpload({company,user,projects,systems,onDone}:{
       if(signed.error)throw signed.error
       const {data:{session}}=await supabase.auth.getSession()
       if(!session)throw new Error('A munkamenet lejárt.')
+      const aiMime=file.type||document.mime_type||(file.name.toLowerCase().endsWith('.pdf')?'application/pdf':'application/octet-stream')
       const response=await fetch('/api/ai',{method:'POST',headers:{
         'Content-Type':'application/json',Authorization:'Bearer '+session.access_token
       },body:JSON.stringify({mode:'document',companyId:company.company_id,document:{
-        id:document.id,url:signed.data.signedUrl,mimeType:file.type||document.mime_type,fileName:file.name
+        id:document.id,url:signed.data.signedUrl,mimeType:aiMime,fileName:file.name
       }})})
       const result=await response.json()
       if(!response.ok)throw new Error(result.error||'Az AI-rendezés nem sikerült.')

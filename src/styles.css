@@ -36,8 +36,8 @@ body{background:var(--bg)}
 .brand-mark{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:11px;padding:4px;flex:none}
 .auth-wrap{background:radial-gradient(circle at 18% 8%,#f51f2720 0,transparent 34%),var(--bg)}
 .auth-card{background:#101010;border-color:#333;box-shadow:0 24px 80px #000b}
-.btn.primary{background:var(--brand-red);color:#fff;border-color:var(--brand-red)}
-.btn.primary:hover{background:#d9151d;border-color:#d9151d}
+.btn.primary{background:#c9141b;color:#fff;border-color:#c9141b}
+.btn.primary:hover{background:#ae1016;border-color:#ae1016}
 .field input:focus,.field select:focus,.field textarea:focus,.inline-form input:focus,.search-bar input:focus{border-color:var(--brand-red);box-shadow:0 0 0 3px #f51f271c}
 .nav-item:hover,.nav-item.active{background:#f51f2716;color:#fff}
 .nav-item.active{box-shadow:inset 3px 0 var(--brand-red)}

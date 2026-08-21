@@ -72,6 +72,7 @@ A migráció a korábbi Electric Crew Alpha táblákat is kiegészíti, minden p
 pnpm typecheck
 pnpm build
 pnpm test:ai-provider
+pnpm test:ios-pwa
 ```
 
 A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a projektet.
@@ -81,4 +82,6 @@ A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a pro
 Aktuális verzió: **10.0.1 – Document Intelligence Stabilized**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).
+
+iPhone/iPad telepítés és korlátok: [docs/IOS_PWA.md](docs/IOS_PWA.md).
 

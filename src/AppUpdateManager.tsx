@@ -2,40 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Download, RefreshCw, X } from 'lucide-react'
 import { APP_VERSION } from './version'
+import { resolveReleaseUpdate, type GithubRelease, type UpdateInfo } from './app-update-utils'
 import './app-update.css'
-
-type GithubRelease = {
-  tag_name?: string
-  html_url?: string
-  name?: string
-  assets?: Array<{ name?: string; browser_download_url?: string }>
-}
-
-type UpdateInfo = {
-  version: string
-  downloadUrl: string
-}
 
 const RELEASE_API = 'https://api.github.com/repos/oke9949/Electric-Crew/releases/latest'
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
 const BACKGROUND_CHECK_MS = 6 * 60 * 60 * 1000
-
-function normalizeVersion(value: string) {
-  const match = value.match(/(\d+)\.(\d+)\.(\d+)/)
-  return match ? `${match[1]}.${match[2]}.${match[3]}` : ''
-}
-
-function isNewerVersion(candidate: string, current: string) {
-  const a = normalizeVersion(candidate).split('.').map(Number)
-  const b = normalizeVersion(current).split('.').map(Number)
-  if (a.length !== 3 || b.length !== 3 || a.some(Number.isNaN) || b.some(Number.isNaN)) return false
-
-  for (let i = 0; i < 3; i += 1) {
-    if (a[i] > b[i]) return true
-    if (a[i] < b[i]) return false
-  }
-  return false
-}
 
 async function fetchAvailableUpdate(): Promise<UpdateInfo | null> {
   const controller = new AbortController()
@@ -49,19 +21,7 @@ async function fetchAvailableUpdate(): Promise<UpdateInfo | null> {
     })
     if (!response.ok) throw new Error(`GitHub release check failed: ${response.status}`)
 
-    const release = (await response.json()) as GithubRelease
-    const version = normalizeVersion(release.tag_name || release.name || '')
-    if (!version || !isNewerVersion(version, APP_VERSION)) return null
-
-    const apk = (release.assets || []).find(asset =>
-      String(asset.name || '').toLowerCase().endsWith('.apk') && String(asset.name || '').includes(version),
-    )
-    const releaseUrl = release.html_url || `https://github.com/oke9949/Electric-Crew/releases/tag/android-v${version}`
-
-    return {
-      version,
-      downloadUrl: apk?.browser_download_url || releaseUrl,
-    }
+    return resolveReleaseUpdate((await response.json()) as GithubRelease, APP_VERSION)
   } finally {
     window.clearTimeout(timeout)
   }

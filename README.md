@@ -72,13 +72,14 @@ A migráció a korábbi Electric Crew Alpha táblákat is kiegészíti, minden p
 pnpm typecheck
 pnpm build
 pnpm test:ai-provider
+pnpm test:app-update
 ```
 
 A GitHub Actions minden pushnál és pull requestnél ugyanígy ellenőrzi a projektet.
 
 ## Kiadás
 
-Aktuális verzió: **10.0.1 – Document Intelligence Stabilized**
+Aktuális verzió: **10.0.3 – In-App Update Test Release**
 
 Részletek: [CHANGELOG.md](CHANGELOG.md) és [docs/RELEASE_6.md](docs/RELEASE_6.md).
 

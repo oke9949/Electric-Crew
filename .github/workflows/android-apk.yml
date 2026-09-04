@@ -2,9 +2,19 @@ name: Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/scripts/android-release.mjs'
+      - '.github/workflows/android-apk.yml'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'src/**'
+      - 'public/**'
   push:
     branches: [main]
     paths:
+      - '.github/scripts/android-release.mjs'
       - '.github/workflows/android-apk.yml'
       - 'capacitor.config.ts'
       - 'package.json'
@@ -13,16 +23,20 @@ on:
       - 'public/**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -45,39 +59,39 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Read application version
+      - name: Read and validate application version
+        id: version
+        shell: bash
+        run: node .github/scripts/android-release.mjs version >> "$GITHUB_OUTPUT"
+
+      - name: Validate published version history
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
         shell: bash
         run: |
-          APP_VERSION="$(node -p "require('./package.json').version")"
-          IFS='.' read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "$APP_VERSION"
-          VERSION_CODE=$((VERSION_MAJOR * 10000 + VERSION_MINOR * 100 + VERSION_PATCH))
-          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-
-      - name: Synchronize dependency lockfile
-        run: |
-          if ! git diff --quiet -- pnpm-lock.yaml; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -- pnpm-lock.yaml
-            git commit -m "chore: synchronize Capacitor lockfile"
-            git push origin HEAD:main
-          fi
+          mapfile -t RELEASE_TAGS < <(gh release list --limit 100 --json tagName --jq '.[].tagName')
+          node .github/scripts/android-release.mjs validate-history "$APP_VERSION" "${RELEASE_TAGS[@]}"
 
       - name: Build web application
         run: pnpm build
 
       - name: Generate Android project
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+        shell: bash
         run: |
           pnpm exec cap add android
           pnpm exec cap sync android
-          sed -i "s/versionCode 1/versionCode ${VERSION_CODE}/" android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"${APP_VERSION}\"/" android/app/build.gradle
+          node .github/scripts/android-release.mjs configure android/app/build.gradle "$APP_VERSION" "$VERSION_CODE"
           sed -i 's#<application#<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <application#' android/app/src/main/AndroidManifest.xml
 
       - name: Generate branded launcher icon
+        shell: bash
         run: |
           mkdir -p android/app/src/main/res/drawable-nodpi
           sudo apt-get update -qq
@@ -86,33 +100,96 @@ jobs:
           sed -i 's#@mipmap/ic_launcher_round#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
           sed -i 's#@mipmap/ic_launcher#@drawable/ec_launcher#g' android/app/src/main/AndroidManifest.xml
 
-      - name: Build installable APK
+      - name: Build pull request APK
+        if: github.event_name == 'pull_request'
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Prepare APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk "Electric-Crew-${APP_VERSION}.apk"
+      - name: Validate release-signing secrets
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then missing+=("$name"); fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::Missing required Android release-signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Decode and verify release keystore
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        shell: bash
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/electric-crew-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Build release-signed APK
+        if: github.event_name != 'pull_request'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare and verify APK
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SOURCE_APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          else
+            SOURCE_APK="android/app/build/outputs/apk/release/app-release.apk"
+          fi
+          APK_FILE="Electric-Crew-${APP_VERSION}.apk"
+          cp "$SOURCE_APK" "$APK_FILE"
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::Android apksigner was not found"
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose --print-certs "$APK_FILE"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Electric-Crew-${{ env.APP_VERSION }}-APK
-          path: Electric-Crew-${{ env.APP_VERSION }}.apk
+          name: Electric-Crew-${{ steps.version.outputs.app_version }}-APK
+          path: Electric-Crew-${{ steps.version.outputs.app_version }}.apk
           if-no-files-found: error
 
-      - name: Publish APK release
+      - name: Publish immutable APK release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        shell: bash
         run: |
           RELEASE_TAG="android-v${APP_VERSION}"
           APK_FILE="Electric-Crew-${APP_VERSION}.apk"
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "$APK_FILE" --clobber
-          else
-            gh release create "$RELEASE_TAG" "$APK_FILE" \
-              --title "Electric Crew ${APP_VERSION} Android" \
-              --notes "Telepíthető Android APK az Electric Crew ${APP_VERSION} kiadásához."
+            echo "Release $RELEASE_TAG already exists; preserving its APK asset unchanged."
+            exit 0
           fi
-
+          gh release create "$RELEASE_TAG" "$APK_FILE" \
+            --target "$GITHUB_SHA" \
+            --title "Electric Crew ${APP_VERSION} Android" \
+            --notes "Tartós Electric Crew kiadási kulccsal aláírt Android APK."

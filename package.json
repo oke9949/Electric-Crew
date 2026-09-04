@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false && tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022,DOM --skipLibCheck api/ai.ts api/ai-provider.ts",
     "test:ai-provider": "node --experimental-strip-types --test api/ai-provider.test.ts",
+    "test:mobile-ia": "node --test tests/mobile-ia.test.mjs",
     "check": "pnpm typecheck && pnpm build",
     "preview": "vite preview --host 0.0.0.0"
   },

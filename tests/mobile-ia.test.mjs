@@ -14,6 +14,15 @@ test('the mobile navigation exposes the five daily entry points', () => {
   assert.match(css, /\.bottom-nav \.quick-main/)
 })
 
+test('the quick action sheet opens real create flows instead of plain navigation', () => {
+  assert.match(app, /type QuickCreateKey='tasks'\|'worklogs'\|'documents'\|'materials'/)
+  assert.match(app, /onClick=\{\(\)=>onAction\(key\)\}/)
+  assert.match(app, /quickCreate=\{quickCreate==='tasks'\}/)
+  assert.match(app, /setTab\('requests'\);setEditing\(\{kind:'request'/)
+  assert.match(app, /setEditing\(\{project_id:projects\[0\]\?\.id\|\|'',system_id:'',work_date:today,hours:8/)
+  assert.match(app, /scrollIntoView\(\{behavior:'smooth',block:'start'\}\)/)
+})
+
 test('rare functions remain under a labelled more section', () => {
   assert.match(app, /nav-group-label">Továbbiak/)
   assert.match(app, /const moreNav=visibleNav\.filter/)

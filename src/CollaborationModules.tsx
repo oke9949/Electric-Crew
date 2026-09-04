@@ -23,7 +23,14 @@ function getCurrentLocation(){
     if(!navigator.geolocation){reject(new Error('A készülék nem támogatja a helymeghatározást.'));return}
     navigator.geolocation.getCurrentPosition(
       result=>resolve({latitude:result.coords.latitude,longitude:result.coords.longitude,accuracy:result.coords.accuracy}),
-      reason=>reject(new Error('A helymeghatározás nem sikerült: '+reason.message)),
+      reason=>{
+        const guidance=reason.code===1
+          ? 'A helyhozzáférés le van tiltva. iPhone/iPad készüléken nyisd meg a Beállítások → Safari → Helyzet menüt, engedélyezd a hozzáférést, majd próbáld újra.'
+          : reason.code===3
+            ? 'A helymeghatározás túllépte az időkorlátot. Menj nyitottabb területre, és próbáld újra.'
+            : 'A készülék most nem tudott pontos helyzetet meghatározni. Ellenőrizd a helyszolgáltatást és a hálózatot.'
+        reject(new Error(guidance))
+      },
       {enableHighAccuracy:true,timeout:15000,maximumAge:30000}
     )
   })
